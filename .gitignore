@@ -1,0 +1,18 @@
+# Python caches and test artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local environments and secrets
+.venv/
+venv/
+.env
+
+# VS Code local state
+.vscode/
+
+# Jupyter temporary files
+.ipynb_checkpoints/
+
+# Large generated model; track it with Git LFS separately if needed
+models/*.pkl

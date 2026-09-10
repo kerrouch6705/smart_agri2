@@ -4,7 +4,9 @@ import requests
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 
-# Supported regions used to retrieve weather automatically.
+# ==================================================
+# RÉGIONS SUPPORTÉES (pour récupérer la météo automatiquement)
+# ==================================================
 REGION_COORDINATES = {
     "Souss-Massa": {"latitude": 30.4278, "longitude": -9.5981},
     "Agadir": {"latitude": 30.4278, "longitude": -9.5981},
@@ -13,30 +15,9 @@ REGION_COORDINATES = {
     "Casablanca": {"latitude": 33.5731, "longitude": -7.5898},
 }
 
-
-def get_next_day_weather(latitude: float, longitude: float) -> dict[str, float]:
-    """Fetch next-day weather values required by the ML model."""
-    params = {
-        "latitude": latitude,
-        "longitude": longitude,
-        "daily": "temperature_2m_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max",
-        "forecast_days": 2,
-        "timezone": "auto",
-    }
-
-    response = requests.get(OPEN_METEO_URL, params=params, timeout=15)
-    response.raise_for_status()
-    payload = response.json()
-
-    daily = payload["daily"]
-    return {
-        "Temperature_C": float(daily["temperature_2m_mean"][1]),
-        "Humidity": float(daily["relative_humidity_2m_mean"][1]),
-        "Rainfall_mm": float(daily["precipitation_sum"][1]),
-        "Wind_Speed_kmh": float(daily["wind_speed_10m_max"][1]),
-    }
-
-
+# ==================================================
+# MÉTÉO (OPEN-METEO)
+# ==================================================
 def get_next_day_weather_for_region(region: str) -> dict[str, float]:
     """Fetch next-day weather using the coordinates configured for a region."""
     coordinates = REGION_COORDINATES.get(region)
@@ -46,7 +27,22 @@ def get_next_day_weather_for_region(region: str) -> dict[str, float]:
             f"Unsupported region '{region}'. Supported regions: {supported_regions}"
         )
 
-    return get_next_day_weather(
-        coordinates["latitude"],
-        coordinates["longitude"],
-    )
+    params = {
+        "latitude": coordinates["latitude"],
+        "longitude": coordinates["longitude"],
+        "daily": "temperature_2m_mean,relative_humidity_2m_mean,precipitation_sum,wind_speed_10m_max",
+        "forecast_days": 2,
+        "timezone": "auto",
+    }
+
+    response = requests.get(OPEN_METEO_URL, params=params, timeout=15)
+    response.raise_for_status()
+    data = response.json()
+
+    daily = data["daily"]
+    return {
+        "Temperature_C": float(daily["temperature_2m_mean"][1]),
+        "Humidity": float(daily["relative_humidity_2m_mean"][1]),
+        "Rainfall_mm": float(daily["precipitation_sum"][1]),
+        "Wind_Speed_kmh": float(daily["wind_speed_10m_max"][1]),
+    }

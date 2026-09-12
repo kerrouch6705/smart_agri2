@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+from core.irrigation_rules import construire_recommandation_irrigation
+from core.orchestrator import orchestrer_analyse_irrigation
 from core.service import predict_next_day_moisture
 from core.weather_service import get_next_day_weather_for_region
 
@@ -24,13 +26,25 @@ def health() -> dict[str, str]:
 
 
 @app.post("/predict")
-def predict(payload: IrrigationInput) -> dict[str, float]:
+def predict(payload: IrrigationInput) -> dict[str, object]:
     try:
         farmer_data = payload.model_dump()
         weather_data = get_next_day_weather_for_region(payload.Region)
         farmer_data.update(weather_data)
         prediction = predict_next_day_moisture(farmer_data)
+        recommendation = construire_recommandation_irrigation(
+            predicted_soil_moisture=prediction,
+            rainfall_mm=weather_data["Rainfall_mm"],
+            soil_type=payload.Soil_Type,
+            crop_growth_stage=payload.Crop_Growth_Stage,
+        )
+        result = orchestrer_analyse_irrigation(
+            farmer_data=payload.model_dump(),
+            weather_data=weather_data,
+            predicted_soil_moisture=prediction,
+            recommendation=recommendation,
+        )
     except (FileNotFoundError, ValueError, KeyError, OSError) as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    return {"predicted_soil_moisture": prediction}
+    return result
